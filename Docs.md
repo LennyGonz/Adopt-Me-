@@ -376,7 +376,7 @@ And update the .eslintrc.json to:
 }
 ```
 
-Personally these are the configurations I found are ideal and perfect for React projects, however I also used [Airbnb]() linting configurations
+Personally these are the configurations I found are ideal and perfect for React projects, however I also used [Airbnb](https://github.com/airbnb/javascript/tree/master/packages/eslint-config-airbnb) linting configurations
 Linting is a very opinionated subjet, so feel free to explore what you like.
 This particular configuration has a lot of rules to help you quickly catch common bugs but otherwise leaves you to code how you want:
 
@@ -384,3 +384,206 @@ This particular configuration has a lot of rules to help you quickly catch commo
 - JSX-a11y catches many bugs around accessibility that can accidently arise during React, like not having an `alt` attribute on an `img` tag.
 - React is mostly common React thhings, like making sure you import React anywhere you use React.
 - babel-lint allows ESLint to use the same transpiling library, Babel, that Parcel uses under the hood. Withoutit, ESLint can't undersatand JSX.
+
+## Handling Events and Async UIs with React
+
+- We need to handle asynchronous loading of data, we can't just show the user nothing until everything loads; we need to let them know we're doing work to get their UI ready.
+
+In Details.js we replace the simple component with:
+
+```javascript
+import React from "react";
+import pf from "petfinder-client";
+import Carousel from "./Carousel";
+
+const petfinder = pf({
+  key: process.env.API_KEY,
+  secret: process.env.API_SECRET
+});
+
+class Details extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = { loading: true };
+  }
+  componentDidMount() {
+    petfinder.pet
+      .get({
+        output: "full",
+        id: this.props.id
+      })
+      .then(data => {
+        let breed;
+        if (Array.isArray(data.petfinder.pet.breeds.breed)) {
+          breed = data.petfinder.pet.breeds.breed.join(", ");
+        } else {
+          breed = data.petfinder.pet.breeds.breed;
+        }
+        this.setState({
+          name: data.petfinder.pet.name,
+          animal: data.petfinder.pet.animal,
+          location: `${data.petfinder.pet.contact.city}, ${
+            data.petfinder.pet.contact.state
+          }`,
+          description: data.petfinder.pet.description,
+          media: data.petfinder.pet.media,
+          breed,
+          loading: false
+        });
+      })
+      .catch(err => this.setState({ error: err }));
+  }
+  render() {
+    if (this.state.loading) {
+      return <h1>loading … </h1>;
+    }
+
+    const { animal, breed, location, description } = this.state;
+
+    return (
+      <div className="details">
+        <div>
+          <h1>{name}</h1>
+          <h2>{`${animal} — ${breed} — ${location}`}</h2>
+          <p>{description}</p>
+        </div>
+      </div>
+    );
+  }
+}
+
+export default Details;
+```
+
+Notice we no longer use the Constructor, the new syntax is called **class properties**, it is a lot nice and easier to ready. Class properties are an upcoming part of JS so we tell Parcel to include that code transformation when it transpiles our code. We do that by making a Babel config file.
+
+In order to make a Babel config file we need to install the following:
+`npm install -D babel-eslint babel-core babel-preset-env babel-plugin-transform-class-properties`
+Now we make a file called .babelrc and insert the following:
+
+```
+{
+  "presets": [
+    [
+      "env",
+      {
+        "targets": {
+          "browsers": ["last 2 versions"]
+        }
+      }
+    ]
+  ],
+  "plugins": ["transform-class-properties"]
+}
+```
+
+And add the following to your .eslintrc.json: `"parser": "babel-eslint"`
+Now with these configurations we can modify Details to be as so:
+`state = { loading: true }`
+
+When clicking on one of the animals you should notice that for a second it says "Loading..."
+This is a good idea while you're waiting for data to load.
+
+### Carousel
+
+In a new file, Carousel.js, add the following:
+
+```javascript
+import React from "react";
+
+class Carousel extends React.Component {
+  state = {
+    photos: [],
+    active: 0
+  };
+  static getDerivedStateFromProps({ media }) {
+    let photos = [];
+    if (media && media.photos && media.photos.photo) {
+      photos = media.photos.photo.filter(photo => photo["@size"] === "pn");
+    }
+
+    return { photos };
+  }
+  render() {
+    const { photos, active } = this.state;
+    return (
+      <div className="carousel">
+        <img src={photos[active].value} alt="animal" />
+        <div className="carousel-smaller">
+          {photos.map((photo, index) => (
+            <img
+              key={photo.value}
+              src={photo.value}
+              className={index === active ? "active" : ""}
+              alt="animal thumbnail"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+}
+
+export default Carousel;
+```
+
+Then in details add the Carousel component inside the Render-return
+`<Carousel media={media} />
+
+- **getDerivedStateFromPops** does exactly what it sounds like: it allows you to accept data from a parent and get state that is derivied from it. In this case, we're removing thr superfluous phots and just keep the ones we want...
+
+```javascript
+import React from "react";
+
+class Carousel extends React.Component {
+  state = {
+    photos: [],
+    active: 0
+  };
+  static getDerivedStateFromProps({ media }) {
+    let photos = [];
+    if (media && media.photos && media.photos.photo) {
+      photos = media.photos.photo.filter(photo => photo["@size"] === "pn");
+    }
+
+    return { photos };
+  }
+  handleIndexClick = event => {
+    this.setState({
+      active: +event.target.dataset.index
+    });
+  };
+  render() {
+    const { photos, active } = this.state;
+    return (
+      <div className="carousel">
+        <img src={photos[active].value} alt="animal" />
+        <div className="carousel-smaller">
+          {photos.map((photo, index) => (
+            /* eslint-disable-next-line */
+            <img
+              onClick={this.handleIndexClick}
+              data-index={index}
+              key={photo.value}
+              src={photo.value}
+              className={index === active ? "active" : ""}
+              alt="animal thumbnail"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+}
+
+export default Carousel;
+```
+
+- When you create eventHandlers in React `this` loses its scope, we the `this` in handleIndexClick to be the correct `this`. Therefore we make eventhandlers arrow functions because an arrow funciton reassures that because it will be the scope of where it was defined.
+  - another alternative is doing `this.<insertEventHandlerFunctionName> = this.<insertEventHandlerFunctionName>.bind(this)` this goes inside constructor if youre still using constructors... for more options read this [article](https://medium.com/front-end-hacking/tutorial-react-two-way-data-binding-2018-b935cb200964)
+- 2 way data binding is not free in react, Angular and Ember do 2-way data binding... but 2 way data binding is more of a curse than a gift. Because when something breaks finding out what the problem is ... is almost impossible.
+- If we were doing keyboard handlers, you'd do an onChange or onKeyUp etc handler.
+- The data attribute comes back as a string. We want it to be the number, hence the `+`
+
+## Forms with React
