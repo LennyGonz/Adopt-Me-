@@ -20,6 +20,12 @@ A webapp using the [Petfinder](https://www.petfinder.com/developers/api-docs) AP
 
 ## Usage
 
+1. git clone [https://github.com/LennyGonz/Adopt-Me.git]
+2. `npm install`
+3. `npm run dev`
+4. For styling `npm run format`
+5. For linting `npm run lint`
+
 ### Development
 
 Want to contribute? Great!
