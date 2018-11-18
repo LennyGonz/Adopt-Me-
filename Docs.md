@@ -1058,9 +1058,15 @@ search() {
 - Now the SearchParams works too, reading data from one route and using it in another. Again, this is overkill and not necessarily a good use of context, but it's good illustrate how it would work
 - We use navigate from Reach Router. This lets us programmatically redirect to the Results page
 
+<hr>
+Modals are annoying UI patterns, they pop up over your page
+<hr>
 ## Portals
 
 Another new feature in React is something called Portals. You can think of the portal as a separate mount point(the actual DOM node which your app is put into)for your React app. The most common use case for this is going to be doing modals. You'll have your normal app with its normal mount point and then you can also put different content into a separate mount point(like a modal or a contextual nav bar) directly from a component.
+
+1. Portals is basically like... I have something in my details page, but I want to render it out to a different location...
+2. So I'm going to be rendering inside of details but I want it to physically exist in the DOM in a different place. So it's kinda like a portal
 
 **First thing, we go into index.html AND add a separate mount point**
 
@@ -1145,6 +1151,78 @@ const {
   ) : null;
 }
 ```
+
+another way of doing it would be
+
+```javascript
+// outside return
+let modal;
+if (showModal) {
+  modal = <Modal />;
+} else {
+  modal = null;
+}
+
+// inside the return we add this
+{
+  modal;
+}
+```
+
+## Additional Topics
+
+### React Refs
+
+Refs are for referencing DOM elements thats inside your React application... you should never have to do this unless you're using a 3rd party element
+
+### Integrating with 3rd Party Libraries
+
+So if we have a graph that we don't want destroyed every time React rerender this is always the pattern we follow
+
+```javascript
+import React from 'react';
+
+class LibWrapper extends React.Component {
+  // here's how i start the application
+  componentDidMount() {
+    lib.init(this.el);
+  }
+  // here's how i clean it up
+  componentWillUnmount() {
+    lib.cleanup(this.el);
+  }
+  // this is key --> because it tells React never update this,
+  // never destroy it, never mess with it anymore, etc
+  shouldComponentUpdate() {
+    return false;
+  }
+  render() {
+    // Here's my ref
+    return <div> ref = {el => this.el = el} />
+  }
+}
+export default LibWrapper;
+```
+
+The danger is that if I update state it wouldn't rerender
+
+### shouldComponentUpdate
+
+Tread lightly when using this because it will stop React from touching whatever component you add this to
+Because React is constantly updating...it should be especially if you've used `this.setState`.
+
+A total static website there are no dangers of using this, so it's fine.
+
+### [LifeCycle Methods]('https://www.reactjs.org/docs/react-component.html')
+
+getSnapshotBeforeUpdate() --> before things updates it will give you previous props and state just to do manipulations with.
+
+99% of the time the one you want to use is: `ComponentDidMount()`
+
+`ComponentDidCatch()` is usef for catching errors and error tracking
+`forceUpdate()` --> basically tells React I know you didn't have an event that forced an update BUT i want you to update now - but you should never call this... if you are you're doing something wrong
+
+### Profiling React
 
 That's it! That's how you make a modal using a portal in React. This used to be significantly more difficult to do but with **portals** it became trivial. The nice thing about portals is that despite the actual elements being in different DOM trees, these are in the same React trees, so you can do event bubbling up from the modal. Some times this is useful if you want to make your Modal more flexible (like we did.)
 

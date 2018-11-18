@@ -2,3 +2,5 @@ node_modules/
 .vscode/
 .env
 .cache/
+Notes.md
+Docs.md
