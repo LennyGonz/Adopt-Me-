@@ -1,6 +1,8 @@
 import React from "react";
 import pf from "petfinder-client";
+import { Consumer } from "./SearchContext";
 import Pet from "./Pet";
+import SearchBox from "./SearchBox";
 
 const petfinder = pf({
   key: process.env.API_KEY,
@@ -13,8 +15,18 @@ class Results extends React.Component {
     pets: []
   };
   componentDidMount() {
+    // By pointing to the search function we ensure that it searches once the component renders
+    this.search();
+  }
+  search = () => {
+    // this function allows you to search whenever, rather than just WHEN the component Mounts the 1 time. SO everytime we hit the submit button we "Search"
     petfinder.pet
-      .find({ output: "full", location: "Seattle, WA" })
+      .find({
+        output: "full",
+        location: this.props.searchParams.location,
+        animal: this.props.searchParams.animal,
+        breed: this.props.searchParams.breed
+      })
       .then(data => {
         let pets;
         // if it exists
@@ -36,10 +48,11 @@ class Results extends React.Component {
           pets
         });
       });
-  }
+  };
   render() {
     return (
       <div className="search">
+        <SearchBox search={this.search} />
         {this.state.pets.map(pet => {
           let breed;
 
@@ -65,4 +78,23 @@ class Results extends React.Component {
   }
 }
 
-export default Results;
+export default function ResultsWithContext(props) {
+  return (
+    <Consumer>
+      {context => <Results {...props} searchParams={context} />}
+    </Consumer>
+  );
+}
+
+/* 
+We want to, inside of ComponentDidMount, to use animal: animal.context
+We want to read from context inside a LIFECYCLE METHOD
+And so far we can only read from context inside the render method, SO WHAT DO WE DO
+
+We have to wrap the thing we export (in this case "the thing is: Results") with Consumer AND
+pass that in as PROPS to Results
+
+Normally we wouldn't use 'function' but by using it... it will show up on the callstack in case 
+we need to debug
+
+*/

@@ -587,3 +587,584 @@ export default Carousel;
 - The data attribute comes back as a string. We want it to be the number, hence the `+`
 
 ## Forms with React
+
+Now we want to make it so you can modify what your search parameters are. So we make a new route called SearchParams.js and have it accept these search parameters.
+
+```javascript
+import React from "react";
+
+class Search extends React.Component {
+  state = {
+    location: "Seattle, WA",
+    animal: "",
+    breed: ""
+  };
+  render() {
+    return (
+      <div className="search-params">
+        <label htmlFor="location">
+          Location
+          <input
+            id="location"
+            value={this.state.location}
+            placeholder="Location"
+          />
+        </label>
+      </div>
+    );
+  }
+}
+
+export default Search;
+```
+
+Then add it to your routes --> `<SearchParams path='/search-params'>`
+And if you go to [localhost](http://localhost:1234/search-params) and see that you have 1 input box that says "Seatlle, WA". If you try to modify it... it won't work. Why?
+
+--> When you type in the input React detects that a DOM event happens
+--> When that hapens, React thinks _something_ may have changed so it runs a re-render
+--> Providing your render functions are fast, this is a very quick operation.
+--> Then it differentiates what's current'y there and what its render pass came up with.
+--> It then updates the minimum amount of DOM necessary
+
+Looking at the htmlFor value = Location, that value(location) is tied to `this.state.location` and nothing is telling state to change the value --> there's only 1 function that can do that `setState`.
+Since nothing changed that value in state - typing in the input box won't change the value and so it remains the same. **In other words 2-way data binding is _not_ free in React**
+
+--> The solution is easy we create a handler function for location and add a onChange to input
+
+```javascript
+// in Search.js
+
+// between state and render
+handleLocationChange = event => {
+  this.setState({
+    location: event.target.value
+  });
+};
+
+// add to input
+onChange={this.handleLocationChange}
+```
+
+Now it should work because any time the input changes, it updates the state. And now you can be assured that whatever is in the state is what's in the input.
+
+Next we make a **drop down menu**
+
+```javascript
+// under handleLocationChange
+handleAnimalChange = event => {
+  this.setState({
+    animal: event.target.value
+  });
+};
+
+// under input
+<label htmlFor="animal">
+  Animal
+  <select
+    id="animal"
+    value={this.state.animal}
+    onChange={this.handleAnimalChange}
+    onBlur={this.handleAnimalChange}
+  >
+    <option />
+    {ANIMALS.map(animal => (
+      <option key={animal} value={animal}>
+        {animal}
+      </option>
+    ))}
+  </select>
+</label>;
+```
+
+We use onChange and onBlur because it makes it more accessible.
+
+Then we want to populate the third dropdown,**breed**, based on the API. Every time animal changes we need to request a new set of breeds.
+
+```javascript
+// replace handleAnimalChange
+handleAnimalChange = event => {
+  this.setState(
+    {
+      animal: event.target.value
+    },
+    this.getBreeds
+  );
+};
+handleBreedChange = event => {
+  this.setState({
+    breed: event.target.value
+  });
+};
+getBreeds() {
+  if (this.state.animal) {
+    petfinder.breed
+      .list({ animal: this.state.animal })
+      .then(data => {
+        if (
+          data.petfinder &&
+          data.petfinder.breeds &&
+          Array.isArray(data.petfinder.breeds.breed)
+        ) {
+          this.setState({
+            breeds: data.petfinder.breeds.breed
+          });
+        } else {
+          this.setState({ breeds: [] });
+        }
+      })
+      .catch(console.error);
+  } else {
+    this.setState({
+      breeds: []
+    });
+  }
+}
+
+// beneath animal dropdown
+<label htmlFor="breed">
+  Breed
+  <select
+    disabled={!this.state.breeds.length}
+    id="breed"
+    value={this.state.breed}
+    onChange={this.handleBreedChange}
+    onBlur={this.handleBreedChange}
+  >
+    <option />
+    {this.state.breeds.map(breed => (
+      <option key={breed} value={breed}>
+        {breed}
+      </option>
+    ))}
+  </select>
+</label>
+<button>Submit</button>
+```
+
+We need to be reactive to every time animal chances to request new breeds. Whenever you call setState, its **not** instant. React is smart enough to wait for you to make all your changes and then catch together re-renders into one go. So because of that, if do:
+`this.setState({ number: this.state.number + 1}); console.log(this.state.number)`, that console.log wll probably be the previous number, before you called setState(it may not be either). In either case, if you need to guarantee that setState gets flushed, you can give setState an optional second param that it will call after it finishes Then we can guarantee getBreeds will work like we expect. Everything else is not new.
+
+So now we have the dadat of what we want to search. How do we pass that into the Results page?
+
+1. Move the state from living SreachParams and into App. We can then pass that state from App into both SearchParams and Results. We then make function that can modify that state and pass that into SearchParams that modify its parents state. **This is a really common pattern but probably the least preferred option here. This can get hairy because of your App component, as you may imagine in a large app, could end up holding a lot of state**
+2. Make everything a URL parameter and use Reach router to maintain the state _in the URL_. This is probably the preferred option here. This makes it possible to deep link into searches in the Results page. **This is what I'd normally do**
+3. Instead we're going to use Context because gotta learn it sometime!
+
+## Context
+
+Context is **like** State, but instead of being confined to a component, it's global to your application. It's application-level state. So it's dangerous because you might be tempted to abuse it...React's so great because it makes the flow of data obvious by being explicit. Context replaces Redux, typically it fills the same need as Redux. I really can't se why you would need to use both. Use one or the other.
+
+Imagine if we wanted to make the seach box at the top of the page appear on the search-params page AND the result page and re-use that component. And we want to make that state stick between the two. This means the state has to live outside of those routes. We could use Redux for it, we could React itself, or we're going to use context, to see what that looks like.
+
+Create a new file called SearchContext.js:
+
+```javascript
+import React from "react";
+
+const SearchContext = React.createContext({
+  location: "Seattle, WA",
+  animal: "",
+  breed: "",
+  breeds: [],
+  handleAnimalChange() {},
+  handleBreedChange() {},
+  handleLocationChange() {},
+  getBreeds() {}
+});
+
+export const Provider = SearchContext.Provider;
+export const Consumer = SearchContext.Consumer;
+```
+
+`createContext` is a function that returns an object with Two React components in it:
+
+1. A Provider
+2. A Consumer
+
+**A Provider** is how you scope where a context goes. A context will only be available inside of the Provider. You only **need to do this once**. SO here the context will be available to Results, Details, and SearchParams AND all the components within them (i.e Pets)
+
+```javascript
+<Provider value={this.state}>
+  <Router>
+    <Results path="/" />
+    <Details path="/details/:id" />
+    <SearchParams path="/search-params" />
+  </Router>
+</Provider>
+```
+
+**A Consumer** is how you consume from the above provider. A Consumer accepts a function as a child and gives it the context which you can use.
+
+The consumer is going to read from the provider, no matter how much distance there is between it. It's basically a portal of data that you put data in one side and it will come out the other side and it will come out the other side. So the provider is like the entrance to the portal and the consumer is the exit from the portal.
+
+The object provided to context is the default state it uses when it can find no Provider above it, useful if there's a chance no provider will be there and for testing. Here we're giving it a bunch of default values.
+
+Now we have to move all the data management into App from SearchParams:
+
+```javascript
+import pf from "petfinder-client";
+import { Provider } from "./SearchContext";
+
+// below imports
+const petfinder = pf({
+  key: process.env.API_KEY,
+  secret: process.env.API_SECRET
+});
+
+constructor(props) {
+  super(props);
+
+  this.state = {
+    location: "Seattle, WA",
+    animal: "",
+    breed: "",
+    breeds: [],
+    handleAnimalChange: this.handleAnimalChange,
+    handleBreedChange: this.handleBreedChange,
+    handleLocationChange: this.handleLocationChange,
+    getBreeds: this.getBreeds
+  };
+}
+handleLocationChange = event => {
+  this.setState({
+    location: event.target.value
+  });
+};
+handleAnimalChange = event => {
+  this.setState(
+    {
+      animal: event.target.value
+    },
+    this.getBreeds
+  );
+};
+handleBreedChange = event => {
+  this.setState({
+    breed: event.target.value
+  });
+};
+getBreeds() {
+  if (this.state.animal) {
+    petfinder.breed
+      .list({ animal: this.state.animal })
+      .then(data => {
+        if (
+          data.petfinder &&
+          data.petfinder.breeds &&
+          Array.isArray(data.petfinder.breeds.breed)
+        ) {
+          this.setState({
+            breeds: data.petfinder.breeds.breed
+          });
+        } else {
+          this.setState({ breeds: [] });
+        }
+      })
+      .catch(console.error);
+  } else {
+    this.setState({
+      breeds: []
+    });
+  }
+}
+
+// wrap the router
+<Provider value={this.state}>
+  […]
+</Provider>
+```
+
+Now move all the markup from SearchParams.js into a new SearchBox.js
+
+```javascript
+import React from "react";
+import { ANIMALS } from "petfinder-client";
+import { Consumer } from "./SearchContext";
+
+class Search extends React.Component {
+  render() {
+    return (
+      <Consumer>
+        {context => (
+          <div className="search-params">
+            <label htmlFor="location">
+              Location
+              <input
+                id="location"
+                onChange={context.handleLocationChange}
+                value={context.location}
+                placeholder="Location"
+              />
+            </label>
+            <label htmlFor="animal">
+              Animal
+              <select
+                id="animal"
+                value={context.animal}
+                onChange={context.handleAnimalChange}
+                onBlur={context.handleAnimalChange}
+              >
+                <option />
+                {ANIMALS.map(animal => (
+                  <option key={animal} value={animal}>
+                    {animal}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label htmlFor="breed">
+              Breed
+              <select
+                disabled={!context.breeds.length}
+                id="breed"
+                value={context.breed}
+                onChange={context.handleBreedChange}
+                onBlur={context.handleBreedChange}
+              >
+                <option />
+                {context.breeds.map(breed => (
+                  <option key={breed} value={breed}>
+                    {breed}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button>Submit</button>
+          </div>
+        )}
+      </Consumer>
+    );
+  }
+}
+
+export default Search;
+```
+
+SO SearchParams.js now looks like this:
+
+```javascript
+import React from "react";
+import SearchBox from "./SearchBox";
+
+class Search extends React.Component {
+  render() {
+    return (
+      <div className="search-route">
+        <SearchBox />
+      </div>
+    );
+  }
+}
+
+export default Search;
+```
+
+Now in Results.js just add:
+
+```javascript
+// first thing inside .search
+<SearchBox />
+```
+
+Now `/search-params` and `/` will both work with context!
+
+**In a real-world situation, using context for this situation is probably OVERKILL. SO here's what it would looklike without using context**
+
+Results is going to read from the Consumer as well
+
+```javascript
+// at the top
+import { Consumer } from "./SearchContext";
+
+// replace componentDidMount
+componentDidMount() {
+  this.search();
+}
+search = () => {
+  petfinder.pet
+    .find({
+      location: this.props.searchParams.location,
+      animal: this.props.searchParams.animal,
+      breed: this.props.searchParams.breed,
+      output: "full"
+    })
+    .then(data => {
+      let pets;
+      if (data.petfinder.pets && data.petfinder.pets.pet) {
+        if (Array.isArray(data.petfinder.pets.pet)) {
+          pets = data.petfinder.pets.pet;
+        } else {
+          pets = [data.petfinder.pets.pet];
+        }
+      } else {
+        pets = [];
+      }
+      this.setState({
+        pets: pets
+      });
+    });
+};
+
+// add prop to SearchBox
+<SearchBox search={this.search} />
+
+// add consumer to export
+export default function ResultsWithContext(props) {
+  return (
+    <Consumer>
+      {context => <Results {...props} searchParams={context} />}
+    </Consumer>
+  );
+}
+```
+
+And that's all we have to do!
+
+1. We now need to search more frequently just on load. So with that we move search to a function and just call that on componentDidMount
+2. We'll pass that search function as a callback to SearchBox so we can call it from within SearchBox
+3. We need to access context within our life cycle method, so that means we'll just wrap Results itself with a context consumer and then pass that context into Results as a prop!
+
+Then add search into SearchBox
+`<button onClick={this.props.search}>Submit</button>`
+That's it...Now your results page should work! Let's go make the other page work too.
+First, we add a link to the header to SearchParams
+So inside App.js
+
+```javascript
+// beneath the other Link
+<Link to="/search-params">
+  <span aria-label="search" role="img">
+    🔍
+  </span>
+</Link>
+```
+
+Next let's go SearchParams and make the last bit work
+
+```javascript
+// import
+import { navigate } from "@reach/router";
+
+// above render, inside Search
+search() {
+  navigate("/");
+}
+
+// add prop
+<SearchBox search={this.search} />
+```
+
+- Now the SearchParams works too, reading data from one route and using it in another. Again, this is overkill and not necessarily a good use of context, but it's good illustrate how it would work
+- We use navigate from Reach Router. This lets us programmatically redirect to the Results page
+
+## Portals
+
+Another new feature in React is something called Portals. You can think of the portal as a separate mount point(the actual DOM node which your app is put into)for your React app. The most common use case for this is going to be doing modals. You'll have your normal app with its normal mount point and then you can also put different content into a separate mount point(like a modal or a contextual nav bar) directly from a component.
+
+**First thing, we go into index.html AND add a separate mount point**
+
+```html
+<!-- above #root -->
+<div id="modal"></div>
+```
+
+This is where the modal will actually be mounted whenever we render to this portal. Totally separate from our app root.
+
+Then we create a file called Modal.js. And taken **almost** directly from the [React docs]()
+
+```javascript
+// taken from React docs
+import React from "react";
+import { createPortal } from "react-dom";
+
+const modalRoot = document.getElementById("modal");
+
+class Modal extends React.Component {
+  constructor(props) {
+    super(props);
+    this.el = document.createElement("div");
+  }
+
+  componentDidMount() {
+    modalRoot.appendChild(this.el);
+  }
+
+  componentWillUnmount() {
+    modalRoot.removeChild(this.el);
+  }
+
+  render() {
+    return createPortal(this.props.children, this.el);
+  }
+}
+
+export default Modal;
+```
+
+- This will mount a div and mount inside of the portal whenever the Modal is rendered and then _remove_ itself whenever it's unrendered
+- Notice we're using `componentWillUnmount` here. This is one of the few instances where you will need it: cleaning up created DOM divs to not leak memory. You'll also clean up event listeners too.
+- Down at the bottom we use React's `createProtal` to pass the children(whatever you put inside `<Modal></Modal>`) to the portal div
+
+Now go to Details.js and add
+
+```javascript
+// at the top
+import Modal from "./Modal";
+
+// add showModal
+state = { loading: true, showModal: false };
+
+// above render
+toggleModal = () => this.setState({ showModal: !this.state.showModal });
+
+// add showModal
+const {
+  media,
+  animal,
+  breed,
+  location,
+  description,
+  name,
+  showModal
+} = this.state;
+
+// below h2
+<button onClick={this.toggleModal}>Adopt {name}</button>;
+
+// below description
+{
+  showModal ? (
+    <Modal>
+      <h1>Would you like to adopt {name}?</h1>
+      <div className="buttons">
+        <button onClick={this.toggleModal}>Yes</button>
+        <button onClick={this.toggleModal}>No</button>
+      </div>
+    </Modal>
+  ) : null;
+}
+```
+
+That's it! That's how you make a modal using a portal in React. This used to be significantly more difficult to do but with **portals** it became trivial. The nice thing about portals is that despite the actual elements being in different DOM trees, these are in the same React trees, so you can do event bubbling up from the modal. Some times this is useful if you want to make your Modal more flexible (like we did.)
+
+<hr>
+End of Intro To React V4
+Start of Advanced React
+<hr>
+
+## Testing
+
+## Emotion
+
+## Code Splitting
+
+## Redux
+
+## Server Side Rendering
+
+## Preact
+
+## Code Organization
+
+## TypeScript
