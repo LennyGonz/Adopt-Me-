@@ -1,6 +1,11 @@
 # Introduction
 
 - React is a library not a framework, know the difference!
+- React helps you build dynamic web applications by automatically updating the DOM when your data model changes.
+  - On top of updating the DOM, React lets you iterate on the interface by combining, expanding, and moving around self-contained elements...these self-contained elements are called _components_
+- Components are like custom elements that precisely match your application's functionality.
+- React takes care of tedious manupulations. To be able to use components, you'll define your interface mostly in JS.
+- React enforces strict rules to **share data** between components.
 - React is nearly never used by itself so it's useful to know the tools being used.
 - This project is more modular and there are a lot of tools being used!
   - I started off diving head first using `create-react-app` but it's useful to know how React works by looking under the hood. So this is what pure React looks like:
@@ -8,31 +13,32 @@
 ```html
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>Adopt Me</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <link rel="stylesheet" href="./style.css">
-  <title>Adopt Me</title>
-</head>
-
-<body>
-  <div id="root">not rendered</div>
-  <script src="https://unpkg.com/react@16.4.1/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@16.4.1/umd/react-dom.development.js"></script>
-  <script>
-  const App = () => {
-    return React.createElement(
-      "div",
-      {},
-      React.createElement("h1", {}, "Adopt Me!")
-  );
-};
-ReactDOM.render(React.createElement(App), document.getElementById("root"));
-  </script>
-</body>
-
+  <body>
+    <div id="root">not rendered</div>
+    <script src="https://unpkg.com/react@16.4.1/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16.4.1/umd/react-dom.development.js"></script>
+    <script>
+      const App = () => {
+        return React.createElement(
+          "div",
+          {},
+          React.createElement("h1", {}, "Adopt Me!")
+        );
+      };
+      ReactDOM.render(
+        React.createElement(App),
+        document.getElementById("root")
+      );
+    </script>
+  </body>
 </html>
 ```
 
@@ -209,22 +215,20 @@ So the index.html file should look like:
 ```html
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="./style.css" />
+    <title>Adopt Me</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <link rel="stylesheet" href="./style.css">
-  <title>Adopt Me</title>
-</head>
-
-<body>
-  <div id="root">not rendered</div>
-  <script src="https://unpkg.com/react@16.4.1/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@16.4.1/umd/react-dom.development.js"></script>
-  <script src="App.js"></script>
-</body>
-
+  <body>
+    <div id="root">not rendered</div>
+    <script src="https://unpkg.com/react@16.4.1/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16.4.1/umd/react-dom.development.js"></script>
+    <script src="App.js"></script>
+  </body>
 </html>
 ```
 
@@ -1225,24 +1229,3 @@ getSnapshotBeforeUpdate() --> before things updates it will give you previous pr
 ### Profiling React
 
 That's it! That's how you make a modal using a portal in React. This used to be significantly more difficult to do but with **portals** it became trivial. The nice thing about portals is that despite the actual elements being in different DOM trees, these are in the same React trees, so you can do event bubbling up from the modal. Some times this is useful if you want to make your Modal more flexible (like we did.)
-
-<hr>
-End of Intro To React V4
-Start of Advanced React
-<hr>
-
-## Testing
-
-## Emotion
-
-## Code Splitting
-
-## Redux
-
-## Server Side Rendering
-
-## Preact
-
-## Code Organization
-
-## TypeScript
