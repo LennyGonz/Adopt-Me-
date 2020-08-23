@@ -1,4 +1,4 @@
-#Adopt-Me
+# Adopt-Me
 
 This pet adoption website goes over React concepts in depth:
 
