@@ -1,4 +1,9 @@
 node_modules/
+.DS_Store
+.cache/
+dist/
+converage/
 .vscode/
 .env
-.cache/
+
+
