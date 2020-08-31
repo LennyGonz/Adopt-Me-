@@ -21,7 +21,7 @@ This pet adoption website goes over React concepts in depth:
 - TypeScript with React
 - Redux
 - Testing React
-
+<hr>
 To Run Locally:
 
 1. git clone
