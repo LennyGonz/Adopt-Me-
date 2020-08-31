@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import pet, { ANIMALS } from "@frontendmasters/pet";
-import useDropdown from "./use-dropdown";
+import useDropdown from "./useDropdown";
 import Results from "./Results";
+import ThemeContext from "./ThemeContext";
 
 const SearchParams = () => {
+  const [theme, setTheme] = useContext(ThemeContext);
   const [location, updateLocation] = useState("Seattle, WA");
   const [breeds, updateBreeds] = useState([]);
   const [pets, setPets] = useState([]);
@@ -17,6 +19,8 @@ const SearchParams = () => {
       type: animal
     });
 
+    console.log("animals", animals);
+
     setPets(animals || []);
   }
 
@@ -28,7 +32,7 @@ const SearchParams = () => {
       const breedStrings = breeds.map(({ name }) => name);
       updateBreeds(breedStrings);
     }, console.error);
-  }, [animal, updateBreeds, updateBreed]);
+  }, [animal]);
 
   return (
     <div className="search-params">
@@ -49,7 +53,20 @@ const SearchParams = () => {
         </label>
         <AnimalDropdown />
         <BreedDropdown />
-        <button>Submit</button>
+        <label htmlFor="location">
+          Theme
+          <select
+            value={theme}
+            onChange={e => setTheme(e.target.value)}
+            onBlur={e => setTheme(e.target.value)}
+          >
+            <option value="peru">Peru</option>
+            <option value="darkblue">Dark Blue</option>
+            <option value="chartreuse">Chartreuse</option>
+            <option value="mediumorchid">Medium Orchid</option>
+          </select>
+        </label>
+        <button style={{ backgroundColor: theme }}>Submit</button>
       </form>
       <Results pets={pets} />
     </div>
