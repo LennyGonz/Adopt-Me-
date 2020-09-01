@@ -28,3 +28,7 @@ To Run Locally:
 2. cd Adopt-Me
 3. npm install
 4. npm run dev
+<hr>
+Useful Links:
+
+- [PassingProps](https://riptutorial.com/reactjs/example/22703/child-to-parent-components)
