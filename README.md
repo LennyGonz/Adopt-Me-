@@ -32,3 +32,4 @@ To Run Locally:
 Useful Links:
 
 - [PassingProps](https://riptutorial.com/reactjs/example/22703/child-to-parent-components)
+- [CommunicatingComponents](https://www.pluralsight.com/guides/react-communicating-between-components)
